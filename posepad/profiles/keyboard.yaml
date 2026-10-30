@@ -1,0 +1,26 @@
+# For games that only read the keyboard: lean to walk, jump to jump.
+name: Keyboard platformer
+output: keyboard
+
+gestures:
+  lean_left:  hip_mid.x > 0.25       # upper body tilts left => hips are to your right
+  lean_right: hip_mid.x < -0.25
+  jump:
+    when: shoulder_mid.vy > 2.5
+    min_on: 0.1
+    cooldown: 0.3
+  punch:
+    when: right_wrist.speed > 6
+    cooldown: 0.3
+
+bindings:
+  - lean_left -> key:left
+  - lean_right -> key:right
+  - jump -> key:space
+  - gesture: punch
+    key: x
+    mode: tap
+  # inline condition, no named gesture needed:
+  - when: left_wrist.y > head.y and right_wrist.y > head.y
+    key: esc
+    mode: tap

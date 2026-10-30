@@ -1,0 +1,46 @@
+# Shadow boxing. Stand side-on-ish with your guard up.
+#   jab (left, fast + arm extending)   -> X
+#   cross (right)                      -> Y
+#   uppercut (right hand moving up)    -> B
+#   guard (both fists by your face)    -> LB (block)
+#   kick (raise a knee to hip height)  -> A
+#   duck                               -> left stick down
+#   step left / right                  -> left stick
+
+name: Boxing
+output: auto
+
+defaults:
+  min_on: 0.1
+
+gestures:
+  guard: >
+    dist(left_wrist, head) < 0.9 and dist(right_wrist, head) < 0.9
+    and left_wrist.speed < 3 and right_wrist.speed < 3
+
+  jab:
+    when: left_wrist.speed > 5 and angle(left_shoulder, left_elbow, left_wrist) > 130
+    cooldown: 0.25
+  cross:
+    when: right_wrist.speed > 5 and angle(right_shoulder, right_elbow, right_wrist) > 130 and not uppercut
+    cooldown: 0.25
+  uppercut:
+    when: right_wrist.vy > 6 and right_wrist.y > right_shoulder.y - 0.5
+    cooldown: 0.4
+
+  kick: left_knee.y > hip_mid.y - 0.15 or right_knee.y > hip_mid.y - 0.15
+
+  duck:
+    when: shoulder_mid.dy < -0.5
+    release: shoulder_mid.dy > -0.3
+  step:
+    value: deadzone(clamp(shoulder_mid.dx * 1.5), 0.2)
+
+bindings:
+  - jab -> X
+  - cross -> Y
+  - uppercut -> B
+  - guard -> LB
+  - kick -> A
+  - step -> left_x
+  - duck -> left_y=-1

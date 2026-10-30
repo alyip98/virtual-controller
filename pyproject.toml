@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "posepad"
+version = "0.1.0"
+description = "Turn body movements seen by a webcam into a virtual game controller"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "numpy>=1.24",
+    "PyYAML>=6",
+    "opencv-python>=4.8",
+    "mediapipe>=0.10.9",
+]
+
+[project.optional-dependencies]
+linux = ["evdev>=1.6"]
+windows = ["vgamepad>=0.1"]
+keyboard = ["pynput>=1.7"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+posepad = "posepad.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["posepad*"]
+
+[tool.setuptools.package-data]
+posepad = ["profiles/*.yaml", "profiles/poses/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

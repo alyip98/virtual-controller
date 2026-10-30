@@ -1,0 +1,64 @@
+# posepad starter profile
+#
+# Coordinates are relative to the player: origin between the shoulders,
+# 1.0 = one shoulder width, +x = your right, +y = up.
+#   .x .y .z     position            .vx .vy .vz  velocity (widths / second)
+#   .dx .dy .dz  movement since the calibrated neutral stance
+# Run `posepad reference` for every point and function, and tune thresholds
+# live with:  posepad run starter -w "right_wrist.y" -w "shoulder_mid.vy"
+#
+# This file is watched while running: save it and changes apply immediately.
+
+name: Starter
+output: auto            # auto | uinput | vgamepad | keyboard | log
+
+camera:
+  device: 0
+  width: 640
+  height: 480
+  mirror: true          # mirror the preview like a selfie camera
+
+defaults:
+  hold: 0.05            # condition must hold this long (s) before triggering
+  min_visibility: 0.5
+
+gestures:
+  # --- static poses: a boolean expression -------------------------------
+  right_hand_up: right_wrist.y > head.y and not both_hands_up
+  left_hand_up:  left_wrist.y > head.y and not both_hands_up
+  both_hands_up:
+    when: left_wrist.y > head.y and right_wrist.y > head.y
+    hold: 0.4           # deliberate: hold both hands up for 0.4s
+
+  # --- whole-body movement (uses calibration, see the preview) ----------
+  jump:
+    when: shoulder_mid.vy > 2.5 or shoulder_mid.dy > 0.5
+    min_on: 0.15        # short movements still register for a few frames
+    cooldown: 0.3
+  crouch:
+    when: shoulder_mid.dy < -0.6
+    release: shoulder_mid.dy > -0.4    # hysteresis: avoids flicker at the edge
+
+  # --- analog: a numeric expression -------------------------------------
+  lean:                 # lean your upper body left/right to steer
+    value: deadzone(clamp(-hip_mid.x * 3), 0.15)
+
+  # --- a movement made of steps -----------------------------------------
+  wave:                 # right hand waving above the shoulder
+    sequence:
+      - right_wrist.y > right_shoulder.y and right_wrist.x > right_elbow.x + 0.15
+      - right_wrist.y > right_shoulder.y and right_wrist.x < right_elbow.x - 0.15
+      - right_wrist.y > right_shoulder.y and right_wrist.x > right_elbow.x + 0.15
+    within: 1.5
+
+  # Recorded poses (`posepad record t_pose -p starter`) become gestures
+  # automatically - just bind them below.
+
+bindings:
+  - jump -> A
+  - crouch -> B
+  - right_hand_up -> X
+  - left_hand_up -> Y
+  - both_hands_up -> START
+  - wave -> BACK
+  - lean -> left_x

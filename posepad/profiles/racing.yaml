@@ -1,0 +1,39 @@
+# Hold an imaginary steering wheel in front of your chest.
+#   turn the wheel        -> left stick
+#   holding the wheel     -> accelerate (RT)
+#   drop both hands       -> brake (LT)
+#   both hands overhead   -> boost (A)
+#   look over a shoulder  -> look behind (RB)
+
+name: Racing
+output: auto
+
+gestures:
+  holding_wheel: >
+    between(dist(left_wrist, right_wrist), 0.5, 2.8)
+    and left_wrist.y > -1.1 and right_wrist.y > -1.1
+    and left_wrist.y < head.y and right_wrist.y < head.y
+
+  # 0 deg = hands level; rotating the wheel clockwise tilts the line downwards
+  steer:
+    value: deadzone(clamp(-direction(left_wrist, right_wrist) / 40), 0.08)
+    when: holding_wheel
+
+  hands_down:
+    when: left_wrist.y < -1.2 and right_wrist.y < -1.2
+    hold: 0.15
+
+  boost:
+    when: left_wrist.y > head.y + 0.2 and right_wrist.y > head.y + 0.2
+    cooldown: 1.0
+
+  look_back:
+    when: abs(nose.x) > 0.35
+    hold: 0.2
+
+bindings:
+  - steer -> left_x
+  - holding_wheel -> rt=1
+  - hands_down -> lt=1
+  - boost -> A
+  - look_back -> RB
