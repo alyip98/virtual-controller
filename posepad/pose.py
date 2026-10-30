@@ -7,6 +7,7 @@ implementing :class:`PoseEstimator`.
 from __future__ import annotations
 
 import logging
+import math
 import os
 import urllib.request
 from pathlib import Path
@@ -80,11 +81,20 @@ class MediaPipeEstimator(PoseEstimator):
         return RawPose(pts, vis, timestamp)
 
     def close(self) -> None:
-        self._landmarker.close()
+        if self._landmarker is not None:
+            self._landmarker.close()
+            # Drop it now: mediapipe's __del__ fails if it runs during interpreter shutdown.
+            self._landmarker = None
+
+
+def _prob(v: float | None) -> float:
+    if v is None:
+        return 1.0
+    # Some models report the logit rather than the sigmoid.
+    return float(v) if 0.0 <= v <= 1.0 else 1.0 / (1.0 + math.exp(-v))
 
 
 def _vis(lm) -> float:
-    v = getattr(lm, "visibility", None)
+    v = _prob(getattr(lm, "visibility", None))
     p = getattr(lm, "presence", None)
-    v = 1.0 if v is None else v
-    return float(min(v, p) if p is not None else v)
+    return min(v, _prob(p)) if p is not None else v

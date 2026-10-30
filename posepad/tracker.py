@@ -18,11 +18,12 @@ class PoseTracker:
     """
 
     def __init__(self, min_cutoff: float = 1.5, beta: float = 0.3,
-                 calibrate_after: float = 1.0, still_speed: float = 0.6,
+                 calibrate_after: float = 1.0, still_radius: float = 0.25,
                  lost_after: float = 0.5):
         self.filter = OneEuroFilter(min_cutoff, beta)
         self.calibrate_after = calibrate_after
-        self.still_speed = still_speed
+        self.still_radius = still_radius
+        self._still_anchor: np.ndarray | None = None
         self.lost_after = lost_after
         self.neutral: np.ndarray | None = None
         self._scale: float | None = None
@@ -32,6 +33,7 @@ class PoseTracker:
     def recalibrate(self) -> None:
         self.neutral = None
         self._still_since = None
+        self._still_anchor = None
 
     @property
     def calibrated(self) -> bool:
@@ -69,12 +71,11 @@ class PoseTracker:
     def _update_neutral(self, frame: BodyFrame) -> None:
         if self.neutral is not None:
             return
-        torso = POINT_INDEX["torso"]
-        speed = float(np.linalg.norm(frame.velocities[torso]))
-        if speed > self.still_speed:
-            self._still_since = None
-            return
-        if self._still_since is None:
+        # Velocity is too jittery to judge stillness; require the torso to stay
+        # within a small radius instead.
+        torso = frame.absolute[POINT_INDEX["torso"]]
+        if self._still_anchor is None or np.linalg.norm(torso[:2] - self._still_anchor[:2]) > self.still_radius:
+            self._still_anchor = torso.copy()
             self._still_since = frame.timestamp
         elif frame.timestamp - self._still_since >= self.calibrate_after:
             self.neutral = frame.absolute.copy()

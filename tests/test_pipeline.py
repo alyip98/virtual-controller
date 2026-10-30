@@ -63,3 +63,15 @@ def test_session_roundtrip(tmp_path: Path):
     frames = list(frames)
     assert aspect == 1.5 and frames[1][1] is None
     assert frames[0][1].points.shape == (33, 3)
+
+
+def test_calibrates_despite_landmark_jitter():
+    import numpy as np
+    from posepad.tracker import PoseTracker
+    rng = np.random.default_rng(0)
+    tr = PoseTracker()
+    for i in range(45):
+        raw = pose(i * DT)
+        raw.points[:, :2] += rng.normal(0, 0.004, raw.points[:, :2].shape)  # ~3% of a shoulder width
+        tr.update(raw, i * DT)
+    assert tr.calibrated
