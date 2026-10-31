@@ -63,7 +63,7 @@ def run(profile_path: str | Path, output: str | None = None, preview: bool = Tru
     estimator = MediaPipeEstimator(profile.pose.model, profile.pose.min_detection_confidence,
                                    profile.pose.min_tracking_confidence)
     backend: Backend = create_backend(output or profile.output, profile.needs_keyboard,
-                                      profile.needs_gamepad)
+                                      profile.needs_gamepad, profile.output_options)
     print(f"posepad: profile '{profile.name}', output -> {backend.name}")
     print(f"posepad: {HELP}")
 

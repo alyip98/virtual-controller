@@ -135,7 +135,7 @@ def main(argv: list[str] | None = None) -> int:
 
     r = sub.add_parser("run", help="start the camera and drive the virtual controller")
     r.add_argument("profile", nargs="?", default="starter")
-    r.add_argument("-o", "--output", choices=["auto", "uinput", "vgamepad", "keyboard", "log"])
+    r.add_argument("-o", "--output", choices=["auto", "uinput", "vgamepad", "ojd", "keyboard", "log"])
     r.add_argument("--camera", help="camera index or video file")
     r.add_argument("--no-preview", action="store_true")
     r.add_argument("-w", "--watch", action="append", metavar="EXPR",

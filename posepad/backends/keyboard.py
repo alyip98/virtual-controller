@@ -24,6 +24,9 @@ class KeyboardBackend(Backend):
     name = "keyboard"
 
     def __init__(self):
+        from ..macos import accessibility_help, accessibility_trusted
+        if accessibility_trusted() is False:
+            raise BackendUnavailable(accessibility_help())
         try:
             from pynput.keyboard import Controller
             self.kb = Controller()

@@ -60,6 +60,7 @@ class Profile:
     camera: CameraConfig = field(default_factory=CameraConfig)
     pose: PoseConfig = field(default_factory=PoseConfig)
     output: str = "auto"
+    output_options: dict[str, Any] = field(default_factory=dict)
     smoothing: dict[str, float] = field(default_factory=dict)
     poses_dir: Path | None = None
     gestures: dict[str, Gesture] = field(default_factory=dict)
@@ -103,10 +104,19 @@ def parse_profile(data: Any, path: Path) -> Profile:
 
     output = data.get("output", "auto")
     if isinstance(output, dict):
+        prof.output_options = {k: v for k, v in output.items() if k != "backend"}
+        for k in prof.output_options:
+            if k != "persona":
+                problems.append(f"output.{k}: unknown setting (only 'backend' and 'persona')")
         output = output.get("backend", "auto")
     if output not in ("auto", "keyboard") + GAMEPAD_BACKENDS:
-        problems.append(f"output must be one of auto, uinput, vgamepad, keyboard, log "
+        problems.append(f"output must be one of auto, {', '.join(GAMEPAD_BACKENDS)}, keyboard "
                         f"(got {output!r})")
+    persona = prof.output_options.get("persona")
+    if persona is not None:
+        from .backends.ojd import PERSONAS
+        if persona not in PERSONAS:
+            problems.append(f"output.persona must be one of {', '.join(PERSONAS)} (got {persona!r})")
     prof.output = str(output)
     prof.smoothing = dict(data.get("smoothing") or {})
 

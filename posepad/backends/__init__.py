@@ -5,6 +5,7 @@ backend    what it creates                                      platforms
 =========  ===================================================  ==============
 uinput     an Xbox 360-compatible pad via /dev/uinput (evdev)   Linux
 vgamepad   an Xbox 360 pad via ViGEmBus (Windows) or uinput     Windows, Linux
+ojd        a pad published by OpenJoystickDriver               macOS
 keyboard   key presses only (for games without pad support)     all
 log        prints state changes; nothing is sent                all
 =========  ===================================================  ==============
@@ -69,7 +70,8 @@ class MultiBackend(Backend):
             b.close()
 
 
-def _make(name: str) -> Backend:
+def _make(name: str, options: dict | None = None) -> Backend:
+    options = options or {}
     if name == "log":
         return LogBackend()
     if name == "uinput":
@@ -78,25 +80,36 @@ def _make(name: str) -> Backend:
     if name == "vgamepad":
         from .vgamepad_backend import VGamepadBackend
         return VGamepadBackend()
+    if name == "ojd":
+        from .ojd import OJDBackend
+        return OJDBackend(persona=options.get("persona", "sdl-compatible"))
     if name == "keyboard":
         from .keyboard import KeyboardBackend
         return KeyboardBackend()
     raise BackendUnavailable(f"unknown backend {name!r}")
 
 
-GAMEPAD_BACKENDS = ("uinput", "vgamepad", "log")
+GAMEPAD_BACKENDS = ("uinput", "vgamepad", "ojd", "log")
 
 
-def create_backend(name: str, need_keyboard: bool, need_gamepad: bool = True) -> Backend:
+def auto_order() -> tuple[str, ...]:
+    if sys.platform == "win32":
+        return ("vgamepad",)
+    if sys.platform == "darwin":
+        return ("ojd",)
+    return ("uinput", "vgamepad")
+
+
+def create_backend(name: str, need_keyboard: bool, need_gamepad: bool = True,
+                   options: dict | None = None) -> Backend:
     """Build the backend(s) a profile needs.  ``name`` may be ``auto``."""
     backends: list[Backend] = []
     if need_gamepad or name == "log":
         if name == "auto":
-            order = ("vgamepad", "uinput") if sys.platform == "win32" else ("uinput", "vgamepad")
             errors = []
-            for candidate in order:
+            for candidate in auto_order():
                 try:
-                    backends.append(_make(candidate))
+                    backends.append(_make(candidate, options))
                     break
                 except BackendUnavailable as e:
                     errors.append(f"  {candidate}: {e}")
@@ -105,7 +118,7 @@ def create_backend(name: str, need_keyboard: bool, need_gamepad: bool = True) ->
                             "\n".join(errors))
                 backends.append(LogBackend())
         elif name != "keyboard":
-            backends.append(_make(name))
+            backends.append(_make(name, options))
     if need_keyboard or name == "keyboard":
         backends.append(_make("keyboard"))
     return backends[0] if len(backends) == 1 else MultiBackend(backends)

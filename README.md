@@ -22,6 +22,7 @@ See [docs/DESIGN.md](docs/DESIGN.md) for the architecture.
 ```bash
 pip install -e ".[linux,keyboard]"      # Linux
 pip install -e ".[windows,keyboard]"    # Windows (also install the ViGEmBus driver)
+pip install -e ".[macos]"               # macOS, see "macOS" below
 ```
 
 The pose model (~5 MB) is downloaded on first run to `~/.cache/posepad`.
@@ -33,6 +34,41 @@ sudo modprobe uinput
 echo 'KERNEL=="uinput", GROUP="input", MODE="0660"' | sudo tee /etc/udev/rules.d/99-uinput.rules
 sudo usermod -aG input "$USER"     # then log out and back in
 ```
+
+## macOS
+
+macOS only lets apps signed with an Apple-restricted entitlement publish a
+virtual gamepad, and a Python script can't have one. posepad gets around this
+by sending its output to **[OpenJoystickDriver](https://github.com/xsyetopz/OpenJoystickDriver)**
+(OJD), a free, notarized app that does have it:
+
+1. Install OJD (macOS 12+), open it once, and give it the permissions it asks for.
+2. Run posepad as usual. `output: auto` finds `ojd` and streams to `ojd virtual feed`.
+   If `ojd` isn't on your PATH, set `POSEPAD_OJD=/path/to/ojd`.
+3. Choose who should see the pad:
+
+   ```yaml
+   output:
+     backend: ojd
+     persona: sdl-compatible      # SDL games, Steam (default)
+     # persona: game-controller-compatible   # native Mac games (GameController framework)
+     # persona: generic
+   ```
+
+Without OJD, use keyboard output (`output: keyboard` with `key:` bindings).
+
+**Permissions** are granted to the app you run posepad from (Terminal, iTerm,
+VS Code…), not to posepad. Allow it under System Settings → Privacy & Security
+→ **Camera**, plus **Accessibility** if you use keyboard output, then restart
+that app. posepad detects missing Accessibility and says so; without this check,
+key presses would be dropped silently.
+
+**Apple Silicon**: any supported Python. **Intel Macs**: mediapipe stopped
+shipping Intel wheels after 0.10.21, so use Python 3.9–3.12. pip then picks
+0.10.21 automatically.
+
+OJD is pre-release software, and its docs say its feed hasn't yet been tested
+with games or for latency. If a game ignores the pad, try another persona.
 
 ## Quick start
 

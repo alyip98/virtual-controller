@@ -19,6 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 linux = ["evdev>=1.6"]
 windows = ["vgamepad>=0.1"]
+macos = ["pynput>=1.7"]
 keyboard = ["pynput>=1.7"]
 dev = ["pytest>=7"]
 

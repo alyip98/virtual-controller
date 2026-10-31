@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import threading
 import time
 
@@ -14,7 +15,11 @@ class Camera:
         self._cv2 = cv2
         self.cap = cv2.VideoCapture(device)
         if not self.cap.isOpened():
-            raise RuntimeError(f"cannot open camera {device!r} (try --camera 1, or a video file)")
+            msg = f"cannot open camera {device!r} (try --camera 1, or a video file)"
+            if sys.platform == "darwin":
+                from .macos import camera_help
+                msg += "\n" + camera_help()
+            raise RuntimeError(msg)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
         self.cap.set(cv2.CAP_PROP_FPS, fps)

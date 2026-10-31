@@ -6,8 +6,8 @@ keyboard) on the same machine. Games see an ordinary Xbox 360 controller.
 
 ## Goals
 
-* **Works with any game** — output is an OS-level virtual Xbox 360 pad, so no
-  game integration is needed. Keyboard output covers games without pad support.
+* **Works with any game** — output is an OS-level virtual gamepad, so no
+  game integration is needed (on macOS via OpenJoystickDriver). Keyboard output covers games without pad support.
 * **Configurable without code** — a profile is one YAML file. Poses can be
   described with short expressions *or* recorded by demonstration.
 * **Fast iteration** — profiles hot-reload on save, the preview shows every
@@ -134,10 +134,42 @@ Analog options: `scale`, `deadzone`, `invert`.
 | --- | --- | --- |
 | `uinput` | python-evdev → `/dev/uinput` | Linux; Xbox 360 IDs and xpad event codes so SDL/Steam map it automatically |
 | `vgamepad` | ViGEmBus (Windows) / uinput (Linux) | Windows default |
+| `ojd` | stream of JSON frames to OpenJoystickDriver's `ojd virtual feed` | macOS default; see below |
 | `keyboard` | pynput | any OS; used automatically when a profile has `key:` bindings |
 | `log` | stdout | testing; also the fallback when no pad backend works |
 
-macOS has no supported virtual-gamepad driver; keyboard output works there.
+### macOS
+
+There is no uinput or ViGEm on macOS. A process can publish a virtual HID
+device (`IOHIDUserDeviceCreateWithProperties`, macOS 10.15+, or CoreHID
+`HIDVirtualDevice`, macOS 15+) only if it is signed with
+`com.apple.developer.hid.virtual.device`. Apple restricts that entitlement:
+it is granted on request and ships in a provisioning profile, so a Python
+interpreter can't carry it. The options were:
+
+| option | verdict |
+| --- | --- |
+| Own signed Swift helper (CoreHID / IOHIDUserDevice) that posepad talks to | Most control. Needs an Apple Developer account, approval for the entitlement, and a notarized helper app to maintain. Possible later. |
+| Disable SIP/AMFI to run without the entitlement | Rejected: weakens system security; not something to ask users to do. |
+| **Delegate to OpenJoystickDriver** | **Chosen.** OJD is notarized, holds the entitlement, and has a public line-based feed (`ojd virtual feed --as <persona>`) for exactly this. |
+| Keyboard only (CGEvent via pynput) | Kept as the no-install fallback. Needs Accessibility permission. |
+
+The `ojd` backend keeps one `ojd virtual feed` process alive and writes a
+frame whenever the state changes, plus a keepalive every 0.5 s (OJD drops a
+pad after 2 s of silence). Mapping: A/B/X/Y → South/East/West/North,
+LB/RB → LeftShoulder/RightShoulder, BACK/START/GUIDE, LS/RS → stick clicks,
+D-pad → `dpad`, and axes with Y negated (OJD sticks are +y = down). Closing
+stdin removes the pad.
+
+Persona compatibility, from public reports of virtual HID pads on macOS: SDL
+and Steam recognise known controller IDs. Apple's GameController framework
+does not see generic virtual HID pads, so OJD's `game-controller-compatible`
+persona exists for native games. Raw-HID readers such as browsers may map
+buttons wrongly.
+
+Camera access and Accessibility are granted to the launching terminal app.
+posepad checks Accessibility with `AXIsProcessTrusted` before using keyboard
+output, and adds a Camera hint when the camera won't open.
 
 ## Latency budget (typical laptop, 640×480)
 
